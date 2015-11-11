@@ -82,6 +82,34 @@
 
 
 	}
+	register_nav_menus( array(
+		'menu_home' 			=> 'Menú Principal',
+		)
+	);
+	
+
+
+
+	function get_post_type_label(){
+		global $post;
+		$data = get_post_type_object($post->post_type);
+		return $data->labels->all_items;
+	}
+	
+	/*
+		obtener la imagen destacada si es que la tiene
+		$args = array( 170, 200, 'bfi_thumb' => true );
+	*/
+	function get_thumbnail($args) 
+	{	
+		global $post;
+			if (has_post_thumbnail( $post->ID )):
+				return the_post_thumbnail($args);
+			else:
+				echo '<img src="http://dummyimage.com/'.$args[0].'x'.$args[1].'/cccccc/686a82.gif&text='.$args[0].' x '.$args[1].'" alt="placeholder+image">';
+			endif;
+
+	}
 	/*if( function_exists('acf_add_options_sub_page') && current_user_can( 'manage_options' ))
 	{
 		acf_add_options_sub_page( 'Config Juegos' );
@@ -290,3 +318,27 @@ function my_register_fields()
 }
 
 
+	function theme_name_wp_title( $title, $sep ) {
+		if ( is_feed() ) {
+			return $title;
+		}
+		
+		global $page, $paged;
+
+		// Add the blog name
+		$title .= get_bloginfo( 'name', 'display' );
+
+		// Add the blog description for the home/front page.
+		$site_description = get_bloginfo( 'description', 'display' );
+		if ( $site_description && ( is_home() || is_front_page() ) ) {
+			$title .= " $sep $site_description";
+		}
+
+		// Add a page number if necessary:
+		if ( ( $paged >= 2 || $page >= 2 ) && ! is_404() ) {
+			$title .= " $sep " . sprintf( __( 'Page %s', '_s' ), max( $paged, $page ) );
+		}
+
+		return $title;
+	}
+	add_filter( 'wp_title', 'theme_name_wp_title', 10, 2 );
