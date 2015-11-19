@@ -342,3 +342,11 @@ function my_register_fields()
 		return $title;
 	}
 	add_filter( 'wp_title', 'theme_name_wp_title', 10, 2 );
+
+
+	function createcookie($success,$alert,$content)
+	{
+		setcookie('success', $success, time()+10);
+		setcookie('alert', $alert, time()+10);
+		setcookie('content', $content, time()+10);
+	}
