@@ -159,7 +159,49 @@
 		
 	
 	}
+	function sendEmail($subject,$from_name,$from_email,$to_email,$to_fullname='',$template){
 
+		try {
+			$mandrill = new Mandrill('LXbcFKUz5KtZGqlCqvD51g');
+
+			$opciones = array(
+				'http'=>array(
+				'method'=>"POST",
+					'header'=>
+					"Accept-language: en\r\n".
+					"Content-type: application/x-www-form-urlencoded\r\n",
+					'content'=>http_build_query($_POST)
+			  )
+			);
+	
+			$context  = stream_context_create($opciones); 
+			$servletURL  = site_url( '/' ).'wp-content/themes/tecnipak/templates/mail/'.$template.'.php'; 
+			$text = file_get_contents($servletURL, false, $context); 
+			$message = array(
+				'subject' 		=> $subject,
+				'from_email' 	=> $from_email,
+				'from_name' 	=> $from_name,
+				'html' 			=> $text,
+				'to' 			=> array(
+									array(
+										'email' => $to_email,
+										'name' => $to_fullname,
+										'type' => 'to'
+									)
+								),
+				'subaccount' => 'Tecnipack',
+			);
+
+		// send the message
+			$result = $mandrill->messages->send($message, false, '', null);
+			
+
+		} catch(Mandrill_Error $e) {
+			$data = ['text' => 'A mandrill error occurred: ' . get_class($e) . ' - ' . $e->getMessage(),'title' => 'Error en Formulario de contacto' , 'page' => ''];
+			wp_send_json_error($data);
+			throw $e;
+		}
+	}
 
 	function exclude_single_posts( $query ) {
 		if (is_category() && $query->is_main_query() && !is_admin()) {
@@ -349,4 +391,9 @@ function my_register_fields()
 		setcookie('success', $success, time()+10);
 		setcookie('alert', $alert, time()+10);
 		setcookie('content', $content, time()+10);
+	}
+
+
+	function get_the_page_children($parent, $post_type){
+		wp_list_pages( array('child_of'     => $parent,'title_li'     => '', 'post_type'    => $post_type,'sort_column'  => 'menu_order, post_title','sort_order'   => 'ASC') );
 	}
