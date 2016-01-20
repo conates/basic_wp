@@ -90,6 +90,77 @@
 
 
 
+	
+
+	if( function_exists('acf_add_options_sub_page') && current_user_can( 'manage_options' ))
+	{
+		acf_add_options_sub_page( 'General' );
+	}
+
+
+
+	// AGREGA REGLA PARA AGREGAR ACF
+	add_filter('acf/location/rule_types', 'acf_location_rules_types');
+	function acf_location_rules_types( $choices )
+	{
+	    $choices['Post']['post_template'] = 'Post Template';
+
+	    return $choices;
+	}
+
+	// LLENA LOS CAMPOS EN LA REGLA
+	add_filter('acf/location/rule_values/post_template', 'acf_location_rules_values_post_template');
+	function acf_location_rules_values_post_template( $choices )
+	{
+	    
+		$templates = get_page_templates();
+	    foreach($templates as $name=>$template){
+			$choices[$template] = $name;
+	    	
+	    }
+
+	    return $choices;
+	}
+
+	// CHECKEO PARA MOSTRAR CAMPOS EN POST ESPECÍFICO
+	add_filter('acf/location/rule_match/post_template', 'acf_location_rules_match_post_template', 10, 3);
+	function acf_location_rules_match_post_template( $match, $rule, $options )
+	{
+		global $post;
+
+		if( ! is_object($post) ) return $match;
+		
+	    $current_template = $post->custom_post_template;
+	    $selected_template = $rule['value'];
+
+	  
+	    if($rule['operator'] == "==")
+	    {
+	    	$match = ( $current_template == $selected_template );
+	    }
+	    if($rule['operator'] == "!=")
+	    {
+	    	$match = ( $current_template == $selected_template );
+	    }
+	    return $match;
+	}
+
+	// MUESTRA LAS OPCIONES EN EL POST
+	function acf_load_custom_post_template( $field ) {
+		if( ! is_admin() ) return $field;
+		$templates = get_page_templates();
+		foreach($templates as $name=>$template){
+			$field['choices'][$template] = $name;
+		}
+		return $field;
+	 }
+	add_filter('acf/load_field/name=custom_post_template', 'acf_load_custom_post_template');
+
+
+
+
+
+
 	function get_post_type_label(){
 		global $post;
 		$data = get_post_type_object($post->post_type);
@@ -396,4 +467,10 @@ function my_register_fields()
 
 	function get_the_page_children($parent, $post_type){
 		wp_list_pages( array('child_of'     => $parent,'title_li'     => '', 'post_type'    => $post_type,'sort_column'  => 'menu_order, post_title','sort_order'   => 'ASC') );
+	}
+
+	//language_date_post('es_ES','%b',get_the_date("M"));
+	function language_date_post($locale,$format,$date){
+		setlocale(LC_TIME, $locale);
+		echo strftime($format, strtotime($date));
 	}
