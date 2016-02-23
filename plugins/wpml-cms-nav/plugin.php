@@ -5,13 +5,13 @@ Plugin URI: https://wpml.org/
 Description: Adds CMS navigation elements to sites built with WPML. <a href="https://wpml.org">Documentation</a>.
 Author: OnTheGoSystems
 Author URI: http://www.onthegosystems.com/
-Version: 1.4.15
+Version: 1.4.16
 Plugin Slug: wpml-cms-nav
 */
 
 if(defined('WPML_CMS_NAV_VERSION')) return;
 
-define('WPML_CMS_NAV_VERSION', '1.4.15');
+define('WPML_CMS_NAV_VERSION', '1.4.16');
 define('WPML_CMS_NAV_PLUGIN_PATH', dirname(__FILE__));
 
 require WPML_CMS_NAV_PLUGIN_PATH . '/inc/wpml-dependencies-check/wpml-bundle-check.class.php';

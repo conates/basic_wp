@@ -6,9 +6,6 @@
 class WPML_Translation_Management extends WPML_SP_User {
 	var $load_priority = 200;
 
-	/** @var WPML_TM_Service_Activation_AJAX $service_activation_ajax */
-	private $service_activation_ajax;
-
 	/** @var  WPML_TM_Loader $tm_loader */
 	private $tm_loader;
 
@@ -30,11 +27,10 @@ class WPML_Translation_Management extends WPML_SP_User {
 	}
 
 	function load() {
-		global $pagenow, $wpml_translation_job_factory;
+		global $pagenow;
 
 		$this->tm_loader->tm_after_load();
 		$wpml_wp_api                   = $this->sitepress->get_wp_api();
-		$this->service_activation_ajax = new WPML_TM_Service_Activation_AJAX( $wpml_wp_api, $wpml_translation_job_factory );
 		$this->ensure_includes();
 		if ( $wpml_wp_api->is_admin() ) {
 			$this->tm_loader->load_xliff_frontend();
@@ -73,15 +69,12 @@ class WPML_Translation_Management extends WPML_SP_User {
 			            array( 'WPML_Remote_String_Translation', 'string_status_text_filter' ),
 			            10,
 			            3 );
-			add_action( 'wp_ajax_translation_service_authentication',
-            array( $this, 'translation_service_authentication_ajax' ) );
 			add_action( 'wp_ajax_translation_service_toggle', array( $this, 'translation_service_toggle_ajax' ) );
 			add_action( 'trashed_post', array( $this, 'trashed_post_actions' ), 10, 2 );
 			add_action( 'wp_ajax_icl_get_jobs_table', 'icl_get_jobs_table' );
 			add_action( 'wp_ajax_icl_cancel_translation_jobs', 'icl_cancel_translation_jobs' );
 			add_action( 'wp_ajax_icl_populate_translations_pickup_box', 'icl_populate_translations_pickup_box' );
 			add_action( 'wp_ajax_icl_pickup_translations', 'icl_pickup_translations' );
-			add_action( 'wp_ajax_icl_get_job_original_field_content', 'icl_get_job_original_field_content' );
 			add_action( 'wp_ajax_icl_get_blog_users_not_translators', 'icl_get_blog_users_not_translators' );
 			add_action( 'wp_ajax_get_translator_status', array('TranslationProxy_Translator', 'get_translator_status_ajax') );
 			add_action( 'wpml_updated_translation_status', array( 'TranslationProxy_Batch', 'maybe_assign_generic_batch' ),  10, 2 );
@@ -313,51 +306,6 @@ class WPML_Translation_Management extends WPML_SP_User {
 		echo wp_json_encode( $response );
 		die();
 
-	}
-	
-	function translation_service_authentication_ajax( ) {
-		$translation_service_authentication = false;
-		if ( isset( $_POST[ 'nonce' ] ) ) {
-			$translation_service_authentication = wp_verify_nonce( $_POST[ 'nonce' ], 'translation_service_authentication' );
-		}
-		$errors  = 0;
-		$message = '';
-
-		$invalidate    = isset($_POST[ 'invalidate' ]) ? $_POST[ 'invalidate' ] : false;
-		if ( $translation_service_authentication ) {
-			if ( $invalidate ) {
-				$result = TranslationProxy::invalidate_service( TranslationProxy::get_current_service_id() );
-				if ( ! $result ) {
-					$message = __( 'Unable to invalidate this service. Please contact WPML support.', 'wpml-translation-management' );
-					$errors ++;
-				} else {
-					$message = __( 'Service invalidated.', 'wpml-translation-management' );
-				}
-			} else {
-				if ( isset( $_POST[ 'custom_fields' ] ) ) {
-					$custom_fields_data_serialized = $_POST[ 'custom_fields' ];
-					$custom_fields_data            = json_decode( stripslashes( $custom_fields_data_serialized ), true );
-					$result                        = TranslationProxy::authenticate_service( $_POST[ 'service_id' ], $custom_fields_data );
-
-					if ( ! $result ) {
-						$message = __( 'Unable to activate this service. Please check entered data and try again.', 'wpml-translation-management' );
-						$errors ++;
-					} else {
-						$message = __( 'Service activated.', 'wpml-translation-management' );
-					}
-				}
-			}
-		} else {
-			$message = __( 'You are not allowed to perform this action.', 'wpml-translation-management' );
-			$errors ++;
-		}
-		$response = array(
-			'errors'  => $errors,
-			'message' => $message,
-			'reload'  => ( ! $errors ? 1 : 0 )
-		);
-		echo wp_json_encode( $response );
-		die();
 	}
 
 	function check_batch_status_ajax() {
@@ -696,65 +644,6 @@ class WPML_Translation_Management extends WPML_SP_User {
 		return $result;
 	}
 
-	private function service_incomplete_local_jobs_notice() {
-		$message_id = 'service_incomplete_local_jobs_notice';
-		$show_message = false;
-
-		if ( $this->must_show_incomplete_jobs_notice() ) {
-			$translation_filter = array( 'service' => 'local', 'translator' => 0, 'status__not' => ICL_TM_COMPLETE );
-			global $iclTranslationManagement;
-			$translation_jobs = $iclTranslationManagement->get_translation_jobs( $translation_filter );
-
-			$jobs_count = count( $translation_jobs );
-			if ( $jobs_count ) {
-				$show_message = true;
-				$current_service_name = TranslationProxy::get_current_service_name();
-
-				$args       = array( '<strong>' . $jobs_count . '</strong>', '<strong>' . $current_service_name . '</strong>' );
-				$messages[] = vsprintf( _x( "There are %s translation jobs for your local translators. These jobs will not go to %s.", 'Incomplete local jobs after TS activation: [message] Line 01', 'wpml-translation-management' ), $args );
-				$args       = array( '<strong>' . $current_service_name . '</strong>' );
-				$messages[] = vsprintf( _x( "You will need to cancel these jobs to send this content to %s.", 'Incomplete local jobs after TS activation: [message] Line 03', 'wpml-translation-management' ), $args );
-
-				$message = '<p>' . implode( '</p><p>', $messages ) . '</p>';
-
-				$options   = array();
-				$action    = 'wpml_cancel_open_local_translators_jobs';
-				$options[] = '<a href="#" data-action="' . $action . '" name="' . $action . '" class="wpml-action button-secondary">'
-				             . _x( 'Cancel jobs to local translators', 'Incomplete local jobs after TS activation: [button] Cancel', 'wpml-translation-management' )
-				             . '</a>';
-				$message .= wp_nonce_field( $action, $action . '_wpnonce', true, false);
-
-				$action    = 'wpml_keep_open_local_translators_jobs';
-				$options[] = '<a href="#" data-action="' . $action . '" name="' . $action . '" class="wpml-action button-secondary">'
-				             . _x( 'Keep current jobs to local translators', 'Incomplete local jobs after TS activation: [button] Keep', 'wpml-translation-management' )
-				             . '</a>';
-				$message .= wp_nonce_field( $action, $action . '_wpnonce', true, false);
-
-				if ( $options ) {
-					$message .= '<ol><li>';
-					$message .= implode( '</li><li>', $options );
-					$message .= '</li></ol>';
-
-				}
-
-				$args = array(
-					'id'            => $message_id,
-					'group'         => 'service_incomplete_local_jobs',
-					'classes'       => array( 'wpml-service-activation-notice' ),
-					'msg'           => $message,
-					'type'          => 'error',
-					'admin_notice'  => true,
-					'limit_to_page' => array( WPML_TM_FOLDER . '/menu/main.php' ),
-				);
-				ICL_AdminNotifier::add_message( $args );
-			}
-		}
-
-		if ( ! $show_message ) {
-			ICL_AdminNotifier::remove_message( $message_id );
-		}
-	}
-
 	private function service_authentication_notice() {
 		$message_id = 'current_service_authentication_required';
 		if ( $this->service_activation_incomplete() ) {
@@ -856,13 +745,6 @@ class WPML_Translation_Management extends WPML_SP_User {
 	}
 
 	/**
-	 * @return bool
-	 */
-	private function must_show_incomplete_jobs_notice() {
-		return $this->is_jobs_tab() && TranslationProxy::get_current_service_id() && !$this->service_activation_incomplete() && ! $this->service_activation_ajax->get_ignore_local_jobs();
-	}
-
-	/**
 	 * @param bool|false $force
 	 */
 	private function ensure_includes( $force = false ) {
@@ -893,7 +775,6 @@ class WPML_Translation_Management extends WPML_SP_User {
 			} catch ( Exception $ex ) {
 				$service_by_suid = false;
 			}
-
 			if ( isset( $service_by_suid->id ) ) {
 				$selected_service_id = isset( $selected_service->id ) ? $selected_service->id : false;
 				if ( ! $selected_service_id || $selected_service_id != $service_by_suid->id ) {
@@ -909,9 +790,6 @@ class WPML_Translation_Management extends WPML_SP_User {
 							$error_data_string .= $key . ': <pre>' . print_r( $error_data_message, true ) . '</pre>';
 							$error_data_string .= $result->get_error_message() . $error_data_string;
 						}
-					}
-					if ( defined( 'WPML_TP_SERVICE_CUSTOM_FIELDS' ) ) {
-						TranslationProxy::authenticate_service( $service_by_suid->id, WPML_TP_SERVICE_CUSTOM_FIELDS );
 					}
 				}
 			} else {
@@ -945,7 +823,6 @@ class WPML_Translation_Management extends WPML_SP_User {
 		}
 
 		if ( ! defined( 'DOING_AJAX' ) ) {
-			$this->service_incomplete_local_jobs_notice();
 			$this->service_authentication_notice();
 		}
 	}

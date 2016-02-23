@@ -96,7 +96,9 @@ var tmEditor = {
                     if (response.success) {
                         var fields = response.data;
                         fields.forEach(function (field) {
-                            self.icl_populate_field(field.field_type, field.field_data);
+                            if(field_type === 'icl_all_fields' || field_type === field.field_type) {
+                                self.icl_populate_field(field.field_type, field.field_data);
+                            }
                         });
                     }
                     ajax_spinner.fadeOut();

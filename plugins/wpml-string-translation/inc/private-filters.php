@@ -49,5 +49,14 @@ function filter_tm_cpt_dashboard_notice( $notice, $custom_posts ) {
 
 add_filter( 'wpml_tm_allowed_source_languages', 'filter_tm_source_langs', 10, 1 );
 add_filter( 'wpml_tm_dashboard_cpt_notice', 'filter_tm_cpt_dashboard_notice', 10, 3 );
-
 add_filter( 'wpml_job_assigned_to_after_assignment', 'wpml_st_filter_job_assignment', 10, 4 );
+
+function wpml_st_blog_title_filter( $val ) {
+
+	return icl_t( 'WP', 'Blog Title', $val );
+}
+
+function wpml_st_blog_description_filter( $val ) {
+
+	return icl_t( 'WP', 'Tagline', $val );
+}

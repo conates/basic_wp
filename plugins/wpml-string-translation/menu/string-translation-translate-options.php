@@ -3,7 +3,6 @@
     $troptions = $admin_texts->icl_st_scan_options_strings();
 ?>
 <div class="wrap">
-    <div id="icon-wpml" class="icon32"><br /></div>
     <h2><?php echo __('String translation', 'wpml-string-translation') ?></h2>    
     
     <?php if(!empty($troptions)): ?>

@@ -5,8 +5,8 @@ add_action('plugins_loaded', 'icl_st_init');
 function icl_st_init(){                       
     global $sitepress_settings, $sitepress, $wpdb, $icl_st_err_str, $pagenow;
 
-    if ( $pagenow === 'site-new.php' && isset($_REQUEST['action']) && 'add-site' === $_REQUEST['action'] ) return;
-    
+	if ( empty( $sitepress_settings['setup_complete'] ) || ( $pagenow === 'site-new.php' && isset( $_REQUEST['action'] ) && 'add-site' === $_REQUEST['action'] ) ) return;
+
     add_action('icl_update_active_languages', 'icl_update_string_status_all');
     add_action('update_option_blogname', 'icl_st_update_blogname_actions',5,2);
     add_action('update_option_blogdescription', 'icl_st_update_blogdescription_actions',5,2);
@@ -112,12 +112,12 @@ function icl_st_init(){
                                                     
         $_GET['translation_language'] = $_POST['icl_st_e_language'];
         $strings = icl_get_string_translations();
-        if(!empty($strings)){
-            $po = icl_st_generate_po_file($strings, !isset($_POST['icl_st_pe_translations']));
-        }else{
-            $po = "";  
-        }
-        if(!isset($_POST['icl_st_pe_translations'])){
+	    if ( ! empty( $strings ) ) {
+		    $po = icl_st_generate_po_file( $strings );
+	    } else {
+		    $po = "";
+	    }
+	    if(!isset($_POST['icl_st_pe_translations'])){
             $popot = 'pot';
             $poname = $_POST['icl_st_e_context'] ? urlencode($_POST['icl_st_e_context']) : 'all_context'; 
         }else{
@@ -133,9 +133,9 @@ function icl_st_init(){
         exit(0);
     }
     
-    // hook into blog title and tag line    
-    add_filter('option_blogname', 'icl_sw_filters_blogname');
-    add_filter('option_blogdescription', 'icl_sw_filters_blogdescription');        
+    // hook into blog title and tag line
+    add_filter('option_blogname', 'wpml_st_blog_title_filter' );
+    add_filter('option_blogdescription', 'wpml_st_blog_description_filter' );
     add_filter('widget_title', 'icl_sw_filters_widget_title', 0);  //highest priority
     add_filter('widget_text', 'icl_sw_filters_widget_text', 0); //highest priority
 
@@ -170,7 +170,6 @@ function icl_st_init(){
     add_filter('get_the_author_nickname', 'icl_st_author_nickname_filter', 10, 2);
     add_filter('get_the_author_description', 'icl_st_author_description_filter', 10, 2);
     add_filter('the_author', 'icl_st_author_displayname_filter', 10);
-    
 }
 
 add_action('profile_update', 'icl_st_register_user_strings');
@@ -306,36 +305,16 @@ function wpml_register_single_string_action( $context, $name, $value, $allow_emp
  */
 add_action('wpml_register_single_string', 'wpml_register_single_string_action', 10, 5);
 
-function icl_translate( $context, $name, $original_value = false, $allow_empty_value = false, &$has_translation = null, $target_lang = null ) {
-	$result = $original_value;
-
-	// We don't want to translate if the blog has been switched
-	// using the switch_to_blog function.
-	// The WPML tables might not exist in other blogs in a multisite install.
-	$is_switched_blog = is_multisite() && ms_is_switched();
-    if ( $is_switched_blog ) {
-        // See if the switched from blog is the same as the current blog
-    	$blog = end( $GLOBALS['_wp_switched_stack'] );
-
-        if ( $GLOBALS['blog_id'] == $blog ) {
-            $is_switched_blog = false;
-        }
-    }
-    
-	if ( ! $is_switched_blog ) {
-
+function icl_translate( $context, $name, $value = false, $allow_empty_value = false, &$has_translation = null, $target_lang = null ) {
+	if ( ! ( is_multisite() && ms_is_switched() ) || $GLOBALS['blog_id'] === end( $GLOBALS['_wp_switched_stack'] ) ) {
+		/** @var WPML_String_Translation $WPML_String_Translation */
 		global $WPML_String_Translation;
-
-		$lang_code = $target_lang ? $target_lang : $WPML_String_Translation->get_current_string_language( $name );
-		/** @var WPML_Displayed_String_Filter $filter_instance */
-		$filter_instance = $WPML_String_Translation->get_string_filter( $lang_code );
-
-		if ( $filter_instance ) {
-			$result = $filter_instance->translate_by_name_and_context( $original_value, $name, $context, $has_translation );
-		}
+		$value = $WPML_String_Translation
+			->get_string_filter( $target_lang ? $target_lang : $WPML_String_Translation->get_current_string_language( $name ) )
+			->translate_by_name_and_context( $value, $name, $context, $has_translation );
 	}
 
-	return $result;
+	return $value;
 }
 
 function icl_st_is_registered_string( $context, $name ) {
@@ -439,14 +418,13 @@ add_filter('translate_string', 'translate_string_filter', 10, 5);
  * @param null|string $language_code            Return the translation in this language
  *                                              Default is NULL which returns the current language
  * @param bool|null   $has_translation          Currently unused. Defaults to NULL
- * @param bool        $disable_auto_register    Set to false internally - see icl_t
  *
  * @return string
  */
-function wpml_translate_single_string_filter( $original_value, $context, $name, $language_code = null, $has_translation = null, $disable_auto_register = false ) {
+function wpml_translate_single_string_filter( $original_value, $context, $name, $language_code = null, $has_translation = null ) {
 	$result = $original_value;
 	if ( is_string( $name ) ) {
-		$result = icl_t( $context, $name, $original_value, $has_translation, $disable_auto_register, $language_code );
+		$result = icl_translate( $context, $name, $original_value, false, $has_translation, $language_code );
 	}
 
 	return $result;
@@ -480,7 +458,7 @@ function icl_t( $context, $name, $original_value = false, &$has_translation = nu
 }
 
 /**
- * @param $name
+ * @param string $name
  *
  * Checks whether a given string is to be translated in the Admin back-end.
  * Currently only tagline and title of a site are to be translated.
@@ -489,15 +467,8 @@ function icl_t( $context, $name, $original_value = false, &$has_translation = nu
  * @return bool
  */
 function is_translated_admin_string( $name ) {
-    $translated = false;
 
-    $exclusions = array( 'Tagline', 'Blog Title' );
-
-    if ( in_array( $name, $exclusions ) ) {
-        $translated = true;
-    }
-
-    return $translated;
+	return in_array( $name, array( 'Tagline', 'Blog Title' ), true );
 }
 
 /**
@@ -532,25 +503,30 @@ function icl_add_string_translation( $string_id, $language, $value = null, $stat
 /**
  * Updates the string translation for an admin option
  *
- * @global WPDB $wpdb
- * @global SitePress $sitepress
+ * @global SitePress               $sitepress
  * @global WPML_String_Translation $WPML_String_Translation
  *
- * @param string $option_name
- * @param string $language
- * @param string $new_value
- * @param int|bool $status
- * @param int $translator_id
- * @param int $rec_level
+ * @param string                   $option_name
+ * @param string                   $language
+ * @param string                   $new_value
+ * @param int|bool                 $status
+ * @param int                      $translator_id
  *
  * @return boolean|mixed
  */
-function icl_update_string_translation( $option_name, $language, $new_value = null, $status = false, $translator_id = null, $rec_level = 0 ) {
-	global $wpdb, $WPML_String_Translation, $sitepress;
+function icl_update_string_translation(
+	$option_name,
+	$language,
+	$new_value = null,
+	$status = false,
+	$translator_id = null
+) {
+	/** @var WPML_String_Translation $WPML_String_Translation */
+	global $WPML_String_Translation;
 
-	$admin_string = new WPML_ST_Admin_Option( $wpdb, $sitepress, $WPML_String_Translation, $option_name );
-
-	return $admin_string->update_translation( $option_name, $language, $new_value, $status, $translator_id, $rec_level );
+	return $WPML_String_Translation->get_admin_option( $option_name, $language )
+	                               ->update_option( '', $new_value, $status,
+		                               $translator_id, 0 );
 }
 
 /**
@@ -674,23 +650,13 @@ function icl_get_strings_tracked_in_pages($string_translations){
     return $strings_in_page;
 }
 
-function icl_sw_filters_blogname($val){
-	$val = icl_t('WP', 'Blog Title', $val);
-	return $val;
-}
-
-function icl_sw_filters_blogdescription($val){
-	$val = icl_t('WP', 'Tagline', $val);
-  return $val;
-}
-
 function icl_sw_filters_widget_title($val){
-	$val = icl_t('Widgets', 'widget title - ' . md5($val) , $val);
+	$val = icl_translate('Widgets', 'widget title - ' . md5($val) , $val);
   return $val;  
 }
 
 function icl_sw_filters_widget_text($val){ 
-	$val = icl_t('Widgets', 'widget body - ' . md5($val) , $val);
+	$val = icl_translate('Widgets', 'widget body - ' . md5($val) , $val);
   return $val;
 }
 
@@ -925,14 +891,6 @@ function icl_st_update_string_actions( $context, $name, $old_value, $new_value, 
 		$string_update = new WPML_ST_String_Update( $wpdb );
 		$string_update->update_string( $context, $name, $old_value, $new_value, $force_complete );
 	}
-}
-
-function icl_st_update_blogname_actions($old, $new){
-    icl_st_update_string_actions('WP', 'Blog Title', $old, $new, true );
-}
-
-function icl_st_update_blogdescription_actions($old, $new){
-    icl_st_update_string_actions('WP', 'Tagline', $old, $new, true );
 }
 
 function icl_st_update_widget_title_actions($old_options, $new_options){        
@@ -1286,10 +1244,6 @@ function icl_st_is_translator(){
 	&& !current_user_can('manage_options') 
 	&& !current_user_can('manage_categories') 
 	&& !current_user_can('wpml_manage_string_translation');
-}
-
-function icl_st_debug($str){
-    trigger_error($str, E_USER_WARNING);
 }
 
 function icl_st_admin_notices_string_updated() {

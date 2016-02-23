@@ -30,6 +30,14 @@ class WPML_ST_String extends WPML_WPDB_User {
 	}
 
 	/**
+	 * @return int
+	 */
+	public function string_id() {
+
+		return $this->string_id;
+	}
+
+	/**
 	 * @return string|null
 	 */
 	public function get_language() {

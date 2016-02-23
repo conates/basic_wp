@@ -557,31 +557,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 		}
 
 		/**
-		 * Changes structure of basket to be flat.
-		 * Information of type is stored in $flat_basket[number]['type']
-		 * @return array rearranged basket
-		 */
-		public static function get_flat_basket() {
-			self::get_basket();
-
-			$flat_basket = array();
-
-			$flat_index = 0;
-
-			$basket_items_types = self::get_basket_items_types();
-			foreach ( $basket_items_types as $item_type_name => $item_type ) {
-				foreach ( self::$basket[ $item_type_name ] as $id => $item ) {
-					$flat_basket[ $flat_index ]           = $item;
-					$flat_basket[ $flat_index ][ 'type' ] = $item_type_name;
-					$flat_basket[ $flat_index ][ 'id' ]   = $id;
-					$flat_index ++;
-				}
-			}
-
-			return $flat_basket;
-		}
-
-		/**
 		 * @param $batch TranslationProxy_Batch
 		 */
 		public static function set_batch_data( $batch ) {
@@ -719,12 +694,6 @@ if ( ! class_exists( 'TranslationProxy_Basket' ) ) {
 		public static function get_source_language() {
 			self::get_basket();
 			return isset( self::$basket[ 'source_language' ] ) ? self::$basket[ 'source_language' ] : false;
-		}
-
-		public static function set_target_languages( $target_languages ) {
-			self::get_basket();
-			self::$basket[ 'target_languages' ] = $target_languages;
-			self::update_basket();
 		}
 
 		private static function sync_target_languages() {

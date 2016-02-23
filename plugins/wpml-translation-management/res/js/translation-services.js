@@ -259,30 +259,30 @@ var WPMLTranslationServicesDialog = function () {
 			button.after(self.ajaxSpinner);
 		}
 
-		ajaxData = {
-			'action':        'translation_service_authentication',
-			'nonce':         tm_ts_data.nonce.translation_service_authentication,
-			'service_id':    serviceId,
-			'invalidate':    invalidate,
-			'custom_fields': self.customFieldsSerialized.val()
-		};
-
 		jQuery.ajax({
 			type:     "POST",
 			url:      ajaxurl,
-			data:     ajaxData,
+			data:     {
+				'action':        'translation_service_authentication',
+				'nonce':         tm_ts_data.nonce.translation_service_authentication,
+				'service_id':    serviceId,
+				'invalidate':    invalidate,
+				'custom_fields': self.customFieldsSerialized.val()
+			},
 			dataType: 'json',
-			success:  function (msg) {
-				if ('undefined' !== msg.message && '' !== msg.message.trim()) {
-					alert(msg.message);
-				}
-
-				if (msg.reload) {
-					location.reload(true);
-				} else {
-					if (button) {
-						button.removeAttr('disabled');
-						button.next().fadeOut();
+			success: function (msg) {
+				if (msg.success) {
+					msg = msg.data;
+					if ('undefined' !== msg.message && '' !== msg.message.trim()) {
+						alert(msg.message);
+					}
+					if (msg.reload) {
+						location.reload(true);
+					} else {
+						if (button) {
+							button.removeAttr('disabled');
+							button.next().fadeOut();
+						}
 					}
 				}
 			},

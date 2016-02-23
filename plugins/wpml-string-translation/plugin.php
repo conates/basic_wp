@@ -5,7 +5,7 @@ Plugin URI: https://wpml.org/
 Description: Adds theme and plugins localization capabilities to WPML | <a href="https://wpml.org">Documentation</a> | <a href="https://wpml.org/version/wpml-3-2/">WPML 3.2 release notes</a>
 Author: OnTheGoSystems
 Author URI: http://www.onthegosystems.com/
-Version: 2.3.5
+Version: 2.3.6.1
 Plugin Slug: wpml-string-translation
 */
 
@@ -13,7 +13,7 @@ if ( defined( 'WPML_ST_VERSION' ) ) {
 	return;
 }
 
-define( 'WPML_ST_VERSION', '2.3.5' );
+define( 'WPML_ST_VERSION', '2.3.6.1' );
 
 // Do not uncomment the following line!
 // If you need to use this constant, use it in the wp-config.php file
@@ -33,14 +33,16 @@ function wpml_st_core_loaded() {
 }
 
 function load_wpml_st_basics() {
-	global $WPML_String_Translation, $wpdb, $wpml_st_string_factory;
+	global $WPML_String_Translation, $wpdb, $wpml_st_string_factory, $sitepress;
 	$wpml_st_string_factory = new WPML_ST_String_Factory( $wpdb );
 
 	require WPML_ST_PATH . '/inc/functions-load.php';
 	require WPML_ST_PATH . '/inc/wpml-string-translation.class.php';
 	require WPML_ST_PATH . '/inc/constants.php';
 
-	$WPML_String_Translation = new WPML_String_Translation( $wpml_st_string_factory );
+	$WPML_String_Translation = new WPML_String_Translation( $sitepress,
+		$wpml_st_string_factory );
+	$WPML_String_Translation->set_basic_hooks();
 
 	require WPML_ST_PATH . '/inc/package-translation/wpml-package-translation.php';
 

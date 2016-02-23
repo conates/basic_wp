@@ -167,18 +167,14 @@ class TranslationProxy_Translator {
 		$site_id    = $project->ts_id;
 		$access_key = $project->ts_access_key;
 
-		$default    = array();
+		$default = array();
 
 		if ( empty( $site_id ) ) {
 			return $default;
 		}
 
-		try {
-			$icl_query = new ICanLocalizeQuery( $site_id, $access_key );
-			$result    = $icl_query->get_website_details();
-		} catch ( Exception $e ) {
-			return $default;
-		}
+		$icl_query = new ICanLocalizeQuery( $site_id, $access_key );
+		$result    = $icl_query->get_website_details();
 
 		return $result;
 	}

@@ -3,14 +3,20 @@
 if ( !class_exists( 'TranslationProxy_Com_Log' ) ) {
 	class TranslationProxy_Com_Log {
 		
-		public static function log_call( $url, $params, $method, $multipart ) {
+		public static function log_call( $url, $params ) {
 			if ( isset( $params[ 'accesskey' ] ) ) {
 				$params[ 'accesskey' ] = 'UNDISCLOSED';
 			}
 			if ( isset( $params[ 'job' ] [ 'file' ] ) ) {
 				$params[ 'job' ] [ 'file' ] = 'UNDISCLOSED';
 			}
-			$custom_fields_to_block = array( 'api_token', 'username', 'api_key', 'sitekey' );
+			$custom_fields_to_block  = array(
+				'api_token',
+				'username',
+				'api_key',
+				'sitekey'
+			);
+			$params['custom_fields'] = isset( $params['custom_fields'] ) ? (array) $params['custom_fields'] : array();
 			foreach ( $custom_fields_to_block as $custom_field ) {
 				if ( isset( $params[ 'custom_fields' ] [ $custom_field ] ) ) {
 					$params[ 'custom_fields' ] [ $custom_field ] = 'UNDISCLOSED';

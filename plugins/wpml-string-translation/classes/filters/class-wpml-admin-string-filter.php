@@ -161,12 +161,8 @@ class WPML_Admin_String_Filter extends WPML_Displayed_String_Filter {
 	
 
 	private function save_string( $value, $allow_empty_value, $language, $domain, $context, $name ) {
-		if ( ( $name || $value )
-		     && ( ! empty( $value )
-		          && is_scalar( $value ) && trim( $value ) || $allow_empty_value )
-		) {
-			$name   = trim( $name ) ? $name : md5( $value );
-			$string = array(
+		if ( $allow_empty_value || $value ) {
+			$this->wpdb->insert( $this->wpdb->prefix . 'icl_strings', array(
 				'language'                => $language,
 				'context'                 => $domain,
 				'gettext_context'         => $context,
@@ -174,10 +170,11 @@ class WPML_Admin_String_Filter extends WPML_Displayed_String_Filter {
 				'name'                    => $name,
 				'value'                   => $value,
 				'status'                  => ICL_TM_NOT_TRANSLATED,
-			);
-
-			$this->wpdb->insert( $this->wpdb->prefix . 'icl_strings', $string );
+			) );
 			$string_id = $this->wpdb->insert_id;
+			if ( $string_id === 0 ) {
+				throw new Exception( 'Count not add String with arguments: value: ' . $value . ' allow_empty_value:' . $allow_empty_value . ' language: ' . $language );
+			}
 
 			icl_update_string_status( $string_id );
 			

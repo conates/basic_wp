@@ -137,6 +137,9 @@ function _potx_process_file($file_path,
   global $_potx_tokens, $_potx_lookup;
 
   // Always grab the CVS version number from the code
+	if ( validate_file( $file_path ) > 0 ) {
+		return;
+	}
   $code = file_get_contents($file_path);
   $file_name = $strip_prefix > 0 ? substr($file_path, $strip_prefix) : $file_path;
   _potx_find_version_number($code, $file_name, $version_callback);

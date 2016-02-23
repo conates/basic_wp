@@ -4,6 +4,7 @@ require_once 'wpml-admin-text-functionality.class.php';
 class WPML_Admin_Texts extends WPML_Admin_Text_Functionality{
 
 	private $icl_st_cache = array();
+	private $sticky_links_exist;
 
 	/** @var  TranslationManagement $tm_instance */
 	private $tm_instance;
@@ -20,6 +21,8 @@ class WPML_Admin_Texts extends WPML_Admin_Text_Functionality{
 		add_filter( 'wpml_unfiltered_admin_string', array( $this, 'unfiltered_admin_string_filter' ), 10, 2 );
 		$this->tm_instance = &$tm_instance;
 		$this->st_instance = &$st_instance;
+		
+		$this->sticky_links_exist = has_filter( 'wpml_sticky_link_string' );
 	}
 
 	function icl_register_admin_options( $array, $key = "", $option = array() ) {
@@ -168,11 +171,8 @@ class WPML_Admin_Texts extends WPML_Admin_Text_Functionality{
 		 * if sticky links plugin is enabled and set to change links into sticky
 		 * in strings, change those links back into permalinks when displayed
 		 */
-		if ( is_string( $option_value ) and class_exists( "WPML_Sticky_links" ) ) {
-			global $WPML_Sticky_Links;
-			if ( isset( $WPML_Sticky_Links ) && $WPML_Sticky_Links->settings['sticky_links_strings'] ) {
-				$option_value = $WPML_Sticky_Links->show_permalinks( $option_value );
-			}
+		if ( is_string( $option_value ) && $this->sticky_links_exist ) {
+			$option_value = apply_filters( 'wpml_sticky_link_string', $option_value );
 		}
 
 		if ( $rec_level === 0 ) {

@@ -1,6 +1,5 @@
 <?php
 require WPML_TM_PATH . '/inc/translation-jobs/helpers/wpml-translation-job-helper.class.php';
-require WPML_TM_PATH . '/inc/translation-jobs/helpers/wpml-element-translation-package.class.php';
 require WPML_TM_PATH . '/inc/translation-jobs/helpers/wpml-translation-job-helper-with-api.class.php';
 require_once WPML_TM_PATH . '/inc/translation-jobs/wpml-translation-jobs-collection.class.php';
 require WPML_TM_PATH . '/inc/translation-jobs/helpers/wpml-save-translation-data-action.class.php';

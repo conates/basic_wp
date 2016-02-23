@@ -80,8 +80,9 @@ class WPML_TM_Dashboard_Document_Row {
 		$post_view_link = '';
 		$post_edit_link = '';
 		if ( ! $this->is_external_type() ) {
-			$post_view_link = TranslationManagement::tm_post_link( $current_document->ID, __( 'View', 'wpml-translation-management' ), true );
-			$post_edit_link = TranslationManagement::tm_post_link( $current_document->ID, __( 'Edit', 'wpml-translation-management' ), true, true, true, true );
+			$post_link_factory = new WPML_TM_Post_Link_Factory($this->sitepress);
+			$post_view_link = $post_link_factory->view_link_anchor( $current_document->ID, __( 'View', 'wpml-translation-management' ));
+			$post_edit_link = $post_link_factory->edit_link_anchor( $current_document->ID, __( 'Edit', 'wpml-translation-management' ));
 		}
 
 		$post_view_link = apply_filters( 'wpml_document_view_item_link', $post_view_link, __( 'View', 'wpml-translation-management' ), $current_document, $element_type, $this->get_type());

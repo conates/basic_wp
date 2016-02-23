@@ -23,76 +23,45 @@ function icl_get_jobs_table() {
 	wp_send_json_success( $data );
 }
 
-function icl_get_job_original_field_content() {
-    global $iclTranslationManagement;
+/**
+ * Ajax handler for retrieving translation job field contents
+ */
+function wpml_get_job_field_ajax() {
+	if ( ! wpml_is_action_authenticated( 'icl_get_job_original_field_content' ) ) {
+		die( 'Wrong Nonce' );
+	}
+	$job_id = (int) filter_input( INPUT_POST, 'tm_editor_job_id',
+		FILTER_SANITIZE_NUMBER_INT );
+	if ( ! $job_id ) {
+		wp_send_json_error( 0 );
+	}
+	/** @var WPML_Translation_Job_Factory $wpml_translation_job_factory */
+	global $wpml_translation_job_factory;
 
-    if ( !wpml_is_action_authenticated ( 'icl_get_job_original_field_content' ) ) {
-        die( 'Wrong Nonce' );
-    }
-
-    $job_id = filter_input ( INPUT_POST, 'tm_editor_job_id', FILTER_SANITIZE_NUMBER_INT );
-    $field = filter_input ( INPUT_POST, 'tm_editor_job_field' );
-    $data = array();
-
-    $job = $job_id !== null && $field !== null ? $job = $iclTranslationManagement->get_translation_job ( $job_id )
-        : null;
-    $elements = $job && isset( $job->elements ) ? $job->elements : array();
-
-    foreach ( $elements as $element ) {
-        $sanitized_type = sanitize_title ( $element->field_type );
-        if ( $field === 'icl_all_fields' || $sanitized_type === $field ) {
-            // if we find a field by that name we need to decode its contents according to its format
-            $field_contents = $iclTranslationManagement->decode_field_data (
-                $element->field_data,
-                $element->field_format
-            );
-            if ( is_scalar ( $field_contents ) ) {
-                $field_contents = strpos ( $field_contents, "\n" ) !== false ? wpautop ( $field_contents )
-                                                                             : $field_contents;
-                $data[ ] = array( 'field_type' => $sanitized_type, 'field_data' => $field_contents );
-            }
-        }
-    }
-
-    if ( (bool) $data !== false ) {
-        wp_send_json_success ( $data );
-    } else {
-        wp_send_json_error ( 0 );
-    }
+	$factory = new WPML_TM_Job_Action_Factory( $wpml_translation_job_factory );
+	$action  = new WPML_TM_Field_Content_Ajax_Action( $factory, $job_id );
+	$result  = $action->run();
+	call_user_func_array( $result[0], array( $result[1] ) );
 }
 
+add_action( 'wp_ajax_icl_get_job_original_field_content',
+	'wpml_get_job_field_ajax' );
+
+/**
+ * Ajax action, that populates the blue TP job status box
+ */
 function icl_populate_translations_pickup_box() {
 	if ( ! wpml_is_action_authenticated( 'icl_populate_translations_pickup_box' ) ) {
 		die( 'Wrong Nonce' );
 	}
+	global $sitepress;
 
-	global $sitepress, $wpdb;
-
-	$last_picked_up     = $sitepress->get_setting( 'last_picked_up' );
-	$translation_offset = strtotime( current_time( 'mysql' ) ) - @intval( $last_picked_up ) - 5 * 60;
-
-	if ( WP_DEBUG == false && $translation_offset < 0 ) {
-		$time_left = floor( abs( $translation_offset ) / 60 );
-		if ( $time_left == 0 ) {
-			$time_left = abs( $translation_offset );
-			$wait_text = '<p><i>' . sprintf( __( 'You can check again in %s seconds.', 'sitepress' ), '<span id="icl_sec_tic">' . $time_left . '</span>' ) . '</i></p>';
-		} else {
-			$wait_text = sprintf( __( 'You can check again in %s minutes.', 'sitepress' ), '<span id="icl_sec_tic">' . $time_left . '</span>' ) . '</i></p>';
-		}
-
-		$result = array(
-				'wait_text' => $wait_text,
-		);
-	} else {
-		$project         = TranslationProxy::get_current_project();
-		$job_factory     = wpml_tm_load_job_factory();
-		$wpml_tm_records = new WPML_TM_Records( $wpdb );
-		$cms_id_helper   = new WPML_TM_CMS_ID( $wpml_tm_records, $job_factory );
-		$polling_status  = new WPML_TP_Polling_Status( $project, $sitepress, $cms_id_helper );
-		$result          = $polling_status->get_status_array();
-	}
-
-	wp_send_json_success( $result );
+	$factory     = new WPML_TP_Polling_Status_Factory( $sitepress );
+	$project     = TranslationProxy::get_current_project();
+	$ajax_action = new WPML_TP_Pickup_Box_Ajax_Action( $sitepress, $factory,
+		$project );
+	$result      = $ajax_action->run();
+	call_user_func_array( $result[0], array( $result[1] ) );
 }
 
 function icl_pickup_translations() {
@@ -100,10 +69,15 @@ function icl_pickup_translations() {
 		die( 'Wrong Nonce' );
 	}
 	global $ICL_Pro_Translation, $wpdb;
-	$job_factory     = wpml_tm_load_job_factory();
-	$wpml_tm_records = new WPML_TM_Records( $wpdb );
-	$cms_id_helper   = new WPML_TM_CMS_ID( $wpml_tm_records, $job_factory );
-	$pickup          = new WPML_TP_Polling_Pickup( $ICL_Pro_Translation, $cms_id_helper );
+	$job_factory         = wpml_tm_load_job_factory();
+	$wpml_tm_records     = new WPML_TM_Records( $wpdb );
+	$cms_id_helper       = new WPML_TM_CMS_ID( $wpml_tm_records, $job_factory );
+	$project             = TranslationProxy::get_current_project();
+	$remote_sync_factory = new WPML_TP_Remote_Sync_Factory( $project,
+		$ICL_Pro_Translation,
+		$cms_id_helper );
+	$pickup              = new WPML_TP_Polling_Pickup( $ICL_Pro_Translation,
+		$remote_sync_factory );
 	wp_send_json_success( $pickup->poll_job( $_POST ) );
 }
 
@@ -150,3 +124,35 @@ function icl_cancel_translation_jobs() {
 
 	wp_send_json_success( $job_ids );
 }
+
+/**
+ * Ajax action for authenticating and invalidating a translation service
+ */
+function wpml_tm_translation_service_authentication_ajax() {
+	if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'],
+			'translation_service_authentication' )
+	) {
+		die( 'Wrong Nonce' );
+	}
+	/** @var SitePress $sitepress */
+	global $sitepress;
+
+	$networking      = wpml_tm_load_tp_networking();
+	$project_factory = new WPML_TP_Project_Factory();
+	$auth_factory    = new WPML_TP_Service_Authentication_Factory( $sitepress,
+		$networking, $project_factory );
+	if ( empty( $_POST['invalidate'] ) && isset( $_POST['service_id'] ) && isset( $_POST['custom_fields'] ) ) {
+		$authentication_action = new WPML_TP_Service_Authentication_Ajax_Action( $auth_factory,
+			$_POST['custom_fields'] );
+	} elseif ( ! empty( $_POST['invalidate'] ) ) {
+		$authentication_action = new WPML_TP_Service_Invalidation_Ajax_Action( $auth_factory );
+	}
+
+	if ( ! isset( $authentication_action ) ) {
+		die( 'Invalid Request' );
+	}
+	wp_send_json_success( $authentication_action->run() );
+}
+
+add_action( 'wp_ajax_translation_service_authentication',
+	'wpml_tm_translation_service_authentication_ajax' );

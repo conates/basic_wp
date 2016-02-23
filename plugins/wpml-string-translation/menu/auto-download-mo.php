@@ -68,7 +68,6 @@ if(isset($active_languages[$language])){
 ?>
 
 <div class="wrap">
-    <div id="icon-wpml" class="icon32"><br /></div>
     <h2><?php _e('Auto-download WordPress translations', 'wpml-string-translation') ?></h2>    
     
     <?php if(!empty($translations_updated) || !empty($translations_add)):?>

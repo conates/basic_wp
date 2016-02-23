@@ -49,7 +49,6 @@ class WPML_String_Translation_MO_Import {
 	 */
 	private function render_response() {
 		$html = '<div class="wrap">';
-		$html .= ' <div id="icon-wpml" class="icon32"><br /></div>';
 		$html .= '<h2>' . __( 'Auto-download WordPress translations', 'wpml-string-translation' ) . '</h2>';
 
 		if ( $this->updated_translations > 0 || ! empty( $this->added_translation ) ) {

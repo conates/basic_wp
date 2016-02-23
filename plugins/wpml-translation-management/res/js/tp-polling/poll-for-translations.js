@@ -43,7 +43,6 @@ var TranslationProxyPolling = {
                         _icl_nonce: nonce,
                         job_polled: currentJob,
                         completed_jobs: TranslationProxyPolling.completed_count,
-                        error_jobs: TranslationProxyPolling.error_data,
                         cancelled_jobs: TranslationProxyPolling.cancel_count
                     },
                     success: function (response) {
@@ -55,12 +54,6 @@ var TranslationProxyPolling = {
                         if (response.data.completed) {
                             icl_message_div = jQuery("#icl_tm_pickup_wrap_completed");
                             icl_message_div.text(response.data.completed);
-                            icl_message_div.show();
-                        }
-                        if (response.data.errors) {
-                            TranslationProxyPolling.error_data = response.data.errors && response.data.errors.length > 5 ? response.data.errors : '';
-                            icl_message_div = jQuery("#icl_tm_pickup_wrap_errors");
-                            icl_message_div.text(TranslationProxyPolling.error_data);
                             icl_message_div.show();
                         }
                         /** @namespace response.data.cancelled */

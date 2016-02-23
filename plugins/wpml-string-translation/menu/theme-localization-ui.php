@@ -37,7 +37,7 @@ function show_automatic_text_domain_checkbox( ) {
 		<?php $use_header_text_domains_when_missing_checked = checked( true, ! empty( $sitepress_settings[ 'st' ][ 'use_header_text_domains_when_missing' ] ), false ); ?>
 		<input type="checkbox" name="wpml_st_theme_localization_type_wpml_td" value="1" <?php echo $use_header_text_domains_when_missing_checked; ?>/>
 		<label for="wpml_st_theme_localization_type_wpml_td">
-			<?php _e( "Automatically use theme or plugin text domains, when gettext calls does not use a string literal.", 'sitepress' ) ?>
+			<?php _e( "Automatically use theme or plugin text domains, when gettext calls does not use a string literal.", 'wpml-string-translation' ) ?>
 		</label>
 		<?php
 		$doing_it_wrong_url = 'http://ottopress.com/2012/internationalization-youre-probably-doing-it-wrong/';
@@ -46,9 +46,9 @@ function show_automatic_text_domain_checkbox( ) {
 		$doing_it_wrong .= '</a>';
 		?>
 		<p class="description">
-			<?php echo sprintf(__( 'Note: It is not safe to use variables, constants or functions in gettext calls. Read "%s" for a detailed explanation.', 'sitepress' ), $doing_it_wrong); ?>
+			<?php echo sprintf(__( 'Note: It is not safe to use variables, constants or functions in gettext calls. Read "%s" for a detailed explanation.', 'wpml-string-translation' ), $doing_it_wrong); ?>
 			<br />
-			<?php _e( 'If your theme or plugins falls in this case, enabling this option, WPML will try to retrieve this from the plugin or theme "Text Domain" header, if set.', 'sitepress' ); ?>
+			<?php _e( 'If your theme or plugins falls in this case, enabling this option, WPML will try to retrieve this from the plugin or theme "Text Domain" header, if set.', 'wpml-string-translation' ); ?>
 		</p>
 	</div>
 	<?php

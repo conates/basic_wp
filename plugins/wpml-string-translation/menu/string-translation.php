@@ -71,7 +71,6 @@ function _icl_string_translation_rtl_textarea($language) {
 ?>
 <div class="wrap">
 
-    <div id="icon-wpml" class="icon32"><br /></div>
     <h2><?php echo __('String translation', 'wpml-string-translation') ?></h2>
 
 	<?php
@@ -137,7 +136,8 @@ function _icl_string_translation_rtl_textarea($language) {
             </tbody>
         </table>
         <a name="add_po_strings_confirm"></a>
-        <p><input class="button" type="button" value="<?php echo __('Cancel', 'wpml-string-translation'); ?>" onclick="location.href='admin.php?page=<?php echo $_GET['page'] ?>'" />
+
+	        <p><input class="button" type="button" value="<?php echo __( 'Cancel', 'wpml-string-translation' ); ?>" onclick="location.href='admin.php?page=<?php echo htmlspecialchars( $_GET['page'], ENT_QUOTES ) ?>'"/>
         &nbsp; <input class="button-primary" type="submit" value="<?php echo __('Add selected strings', 'wpml-string-translation'); ?>" />
         </p>
         </form>
@@ -326,12 +326,10 @@ function _icl_string_translation_rtl_textarea($language) {
                             echo ' selected="selected"';
                         } ?>>100
                         </option>
-                    </select>
-                    &nbsp;
-                    <a href="admin.php?page=<?php echo $_GET[ 'page' ] ?>&amp;show_results=all<?php if ( isset( $_GET[ 'context' ] ) ) {
-                        echo '&amp;context=' . $_GET[ 'context' ];
+                    </select>&nbsp;<a href="admin.php?page=<?php echo htmlspecialchars( $_GET['page'], ENT_QUOTES ) ?>&amp;show_results=all<?php if ( isset( $_GET['context'] ) ) {
+		                echo '&amp;context=' . htmlspecialchars( $_GET['context'], ENT_QUOTES );
                     } ?><?php if ( isset( $_GET[ 'status' ] ) ) {
-                        echo '&amp;status=' . $_GET[ 'status' ];
+		                echo '&amp;status=' . htmlspecialchars( $_GET['status'], ENT_QUOTES );
                     } ?>"><?php echo __( 'Display all results', 'wpml-string-translation' ); ?></a>
                 <?php endif; ?>
             </div>

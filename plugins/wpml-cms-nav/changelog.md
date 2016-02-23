@@ -1,3 +1,8 @@
+# 1.4.16
+
+##Cleanup
+* [wpmlcore-2541] Removal of "icon-32" usage
+
 # 1.4.15
 
 ##Fixes

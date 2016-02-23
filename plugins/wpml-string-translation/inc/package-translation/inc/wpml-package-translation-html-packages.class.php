@@ -39,7 +39,6 @@ class WPML_Package_Translation_HTML_Packages {
 			$package_kind_options[ $kind_slug ] = $kind;
 		}
 		?>
-		<div id="icon-wpml" class="icon32"><br/></div>
 		<h2><?php echo $table_title; ?></h2>
 
 		<p>

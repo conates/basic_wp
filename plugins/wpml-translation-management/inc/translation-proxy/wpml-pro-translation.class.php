@@ -16,6 +16,8 @@ class WPML_Pro_Translation extends WPML_TM_Job_Factory_User {
 	/** @var  WPML_TM_CMS_ID $cms_id_helper */
 	private $cms_id_helper;
 
+	/** @var WPML_TM_Xliff_Reader_Factory $xliff_reader_factory */
+	private $xliff_reader_factory;
 	/**
 	 * WPML_Pro_Translation constructor.
 	 *
@@ -107,8 +109,7 @@ class WPML_Pro_Translation extends WPML_TM_Job_Factory_User {
 			$err = true;
 		}
 		if ( ! $err && ( $translation->needs_update || $translation->status == ICL_TM_NOT_TRANSLATED || $translation->status == ICL_TM_WAITING_FOR_TRANSLATOR ) ) {
-			$tp_networking = wpml_tm_load_tp_networking();
-			$project       = $tp_networking->get_current_project();
+			$project       = TranslationProxy::get_current_project();
 
 			if ( $iclTranslationManagement->is_external_type( $element_type_prefix ) ) {
 				$job_object = new WPML_External_Translation_Job( $job_id );
@@ -203,7 +204,10 @@ class WPML_Pro_Translation extends WPML_TM_Job_Factory_User {
 	 * @return bool
 	 */
 	function cancel_translation( $rid, $cms_id ) {
-		/** @var WPML_String_Translation $WPML_String_Translation */
+		/**
+		 * @var WPML_String_Translation $WPML_String_Translation
+		 * @var TranslationManagement $iclTranslationManagement
+		 */
 		global $sitepress, $wpdb, $WPML_String_Translation, $iclTranslationManagement;
 
 		$res           = false;
@@ -299,8 +303,7 @@ class WPML_Pro_Translation extends WPML_TM_Job_Factory_User {
 		}
 		$ret = true;
 
-		if ( ! empty( $translation ) ) {
-
+		if ( ! empty( $translation ) && strpos( $translation, 'xliff' ) !== false ) {
 			try {
 				/** @var $job_xliff_translation WP_Error|array */
 				$job_xliff_translation = $this->xliff_reader_factory
@@ -336,87 +339,6 @@ class WPML_Pro_Translation extends WPML_TM_Job_Factory_User {
 
 		return $ret;
 	}
-
-	/**
-	 * Resolve a URL relative to a base path. This happens to work with POSIX
-	 * file names as well. This is based on RFC 2396 section 5.2.
-	 *
-	 * @param string $base
-	 * @param string $url
-	 *
-	 * @return bool|string
-	 */
-    function resolve_url($base, $url) {
-            if (!strlen($base)) return $url;
-            // Step 2
-            if (!strlen($url)) return $base;
-            // Step 3
-            if (preg_match('!^[a-z]+:!i', $url)) return $url;
-            $base = parse_url($base);
-            if ($url{0} == "#") {
-                    // Step 2 (fragment)
-                    $base['fragment'] = substr($url, 1);
-                    return $this->unparse_url($base);
-            }
-            unset($base['fragment']);
-            unset($base['query']);
-            if (substr($url, 0, 2) == "//") {
-                    // Step 4
-                    return $this->unparse_url(array(
-                            'scheme'=>$base['scheme'],
-                            'path'=>$url,
-                    ));
-            } else if ($url{0} == "/") {
-                    // Step 5
-                    $base['path'] = $url;
-            } else {
-                    // Step 6
-                    $path = explode('/', $base['path']);
-                    $url_path = explode('/', $url);
-                    // Step 6a: drop file from base
-                    array_pop($path);
-                    // Step 6b, 6c, 6e: append url while removing "." and ".." from
-                    // the directory portion
-                    $end = array_pop($url_path);
-                    foreach ($url_path as $segment) {
-                            if ($segment == '.') {
-                                    // skip
-                            } else if ($segment == '..' && $path && $path[sizeof($path)-1] != '..') {
-                                    array_pop($path);
-                            } else {
-                                    $path[] = $segment;
-                            }
-                    }
-                    // Step 6d, 6f: remove "." and ".." from file portion
-                    if ($end == '.') {
-                            $path[] = '';
-                    } else if ($end == '..' && $path && $path[sizeof($path)-1] != '..') {
-                            $path[sizeof($path)-1] = '';
-                    } else {
-                            $path[] = $end;
-                    }
-                    // Step 6h
-                    $base['path'] = join('/', $path);
-
-            }
-            // Step 7
-            return $this->unparse_url($base);
-    }
-
-    function unparse_url($parsed){
-        if (! is_array($parsed)) return false;
-        $uri = isset($parsed['scheme']) ? $parsed['scheme'].':'.((wpml_mb_strtolower($parsed['scheme']) == 'mailto') ? '':'//'): '';
-        $uri .= isset($parsed['user']) ? $parsed['user'].($parsed['pass']? ':'.$parsed['pass']:'').'@':'';
-        $uri .= isset($parsed['host']) ? $parsed['host'] : '';
-        $uri .= isset($parsed['port']) ? ':'.$parsed['port'] : '';
-        if(isset($parsed['path']))
-            {
-            $uri .= (substr($parsed['path'],0,1) == '/')?$parsed['path']:'/'.$parsed['path'];
-            }
-        $uri .= isset($parsed['query']) ? '?'.$parsed['query'] : '';
-        $uri .= isset($parsed['fragment']) ? '#'.$parsed['fragment'] : '';
-        return $uri;
-    }
 
     function _content_get_link_paths($body) {
       

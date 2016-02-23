@@ -56,24 +56,29 @@ class WPML_Plugin_String_Scanner extends WPML_String_Scanner {
 				$this->current_plugin_file = $p[ 'file' ];
 				$plugin_path               = $plugin;
 			}
-			$this->current_path = $plugin_path;
-			
-			$text_domain = $this->get_plugin_text_domain();
-			$this->init_text_domain($text_domain);
-			
-			$this->add_stat( PHP_EOL.sprintf( __( 'Scanned files from %s:', 'wpml-string-translation' ), $plugin ) );
-			$this->scan_plugin_files();
 
-			$this->current_type = 'plugin';
-			if ( isset($_POST[ 'icl_load_mo' ]) && $_POST[ 'icl_load_mo' ] && ! $p[ 'mu' ] ) {
-				$this->add_translations( array_keys( $this->get_domains_found() ), '' );
+			if ( validate_file( $plugin_path ) <= 0 && validate_file( $this->current_plugin_file ) <= 0 ) {
+				$this->current_path = $plugin_path;
+
+				$text_domain = $this->get_plugin_text_domain();
+				$this->init_text_domain( $text_domain );
+
+				$this->add_stat( PHP_EOL . sprintf( __( 'Scanned files from %s:', 'wpml-string-translation' ), $plugin ) );
+				$this->scan_plugin_files();
+
+				$this->current_type = 'plugin';
+				if ( isset( $_POST['icl_load_mo'] ) && $_POST['icl_load_mo'] && ! $p['mu'] ) {
+					$this->add_translations( array_keys( $this->get_domains_found() ), '' );
+				}
+				$this->copy_old_translations( array_keys( $this->get_domains_found() ), 'plugin' );
+				$this->cleanup_wrong_contexts();
+
+				$string_settings                                               = apply_filters( 'wpml_get_setting', false, 'st' );
+				$string_settings['plugin_localization_domains'] [ $p['file'] ] = $this->get_domains_found();
+				do_action( 'wpml_set_setting', 'st', $string_settings, true );
+			} else {
+				$this->add_stat( sprintf( __( 'Invalid file: %s', 'wpml-string-translation' ), "/" . $plugin_path ) );
 			}
-			$this->copy_old_translations( array_keys( $this->get_domains_found() ), 'plugin' );
-			$this->cleanup_wrong_contexts( );
-
-			$string_settings                                                   = apply_filters( 'wpml_get_setting', false, 'st' );
-			$string_settings[ 'plugin_localization_domains' ] [ $p[ 'file' ] ] = $this->get_domains_found();
-			do_action( 'wpml_set_setting', 'st', $string_settings, true );
 		}
 		$this->add_scan_stat_summary();
 
@@ -110,36 +115,39 @@ class WPML_Plugin_String_Scanner extends WPML_String_Scanner {
 			$dir_or_file = $this->current_path;
 		}
 
-		if ( ! $recursion ) {
-			$icl_st_p_scan_plugin_id = str_replace( WP_PLUGIN_DIR . '/', '', $dir_or_file );
-			$icl_st_p_scan_plugin_id = str_replace( WPMU_PLUGIN_DIR . '/', '', $icl_st_p_scan_plugin_id );
-		}
+		if ( validate_file( $dir_or_file ) <= 0 ) {
+			if ( ! $recursion ) {
+				$icl_st_p_scan_plugin_id = str_replace( WP_PLUGIN_DIR . '/', '', $dir_or_file );
+				$icl_st_p_scan_plugin_id = str_replace( WPMU_PLUGIN_DIR . '/', '', $icl_st_p_scan_plugin_id );
+			}
 
-		if ( is_file( $dir_or_file ) && ! $recursion ) { // case of one-file plugins
-			$this->add_stat( sprintf( __( 'Scanning file: %s', 'wpml-string-translation' ), $dir_or_file ) );
-			_potx_process_file( $dir_or_file, 0, array( $this, 'store_results' ), '_potx_save_version', $this->get_default_domain() );
-			$this->add_scanned_file( $dir_or_file );
-		} else {
-			$dh = opendir( $dir_or_file );
-			while ( $dh && false !== ( $file = readdir( $dh ) ) ) {
-				if ( 0 === strpos( $file, '.' ) ) {
-					continue;
-				}
-				if ( is_dir( $dir_or_file . "/" . $file ) ) {
-					$recursion ++;
-					$this->add_stat( str_repeat( "\t", $recursion - 1 ) . sprintf( __( 'Opening folder: %s', 'wpml-string-translation' ), "/" . $file ) );
-					$this->scan_plugin_files( $dir_or_file . "/" . $file, $recursion );
-					$recursion --;
-				} elseif ( preg_match( '#(\.php|\.inc)$#i', $file ) ) {
-					$this->add_stat( str_repeat( "\t", $recursion ) . sprintf( __( 'Scanning file: %s', 'wpml-string-translation' ), "/" . $file ) );
-					$this->add_scanned_file( "/" . $file );
-					_potx_process_file( $dir_or_file . "/" . $file, 0, array( $this, 'store_results' ), '_potx_save_version', $this->get_default_domain() );
-				} else {
-					$this->add_stat( str_repeat( "\t", $recursion ) . sprintf( __( 'Skipping file: %s', 'wpml-string-translation' ), "/" . $file ) );
+			if ( is_file( $dir_or_file ) && ! $recursion ) { // case of one-file plugins
+				$this->add_stat( sprintf( __( 'Scanning file: %s', 'wpml-string-translation' ), $dir_or_file ) );
+				_potx_process_file( $dir_or_file, 0, array( $this, 'store_results' ), '_potx_save_version', $this->get_default_domain() );
+				$this->add_scanned_file( $dir_or_file );
+			} else {
+				$dh = opendir( $dir_or_file );
+				while ( $dh && false !== ( $file = readdir( $dh ) ) ) {
+					if ( 0 === strpos( $file, '.' ) ) {
+						continue;
+					}
+					if ( is_dir( $dir_or_file . "/" . $file ) ) {
+						$recursion ++;
+						$this->add_stat( str_repeat( "\t", $recursion - 1 ) . sprintf( __( 'Opening folder: %s', 'wpml-string-translation' ), "/" . $file ) );
+						$this->scan_plugin_files( $dir_or_file . "/" . $file, $recursion );
+						$recursion --;
+					} elseif ( preg_match( '#(\.php|\.inc)$#i', $file ) ) {
+						$this->add_stat( str_repeat( "\t", $recursion ) . sprintf( __( 'Scanning file: %s', 'wpml-string-translation' ), "/" . $file ) );
+						$this->add_scanned_file( "/" . $file );
+						_potx_process_file( $dir_or_file . "/" . $file, 0, array( $this, 'store_results' ), '_potx_save_version', $this->get_default_domain() );
+					} else {
+						$this->add_stat( str_repeat( "\t", $recursion ) . sprintf( __( 'Skipping file: %s', 'wpml-string-translation' ), "/" . $file ) );
+					}
 				}
 			}
+		} else {
+			$this->add_stat( str_repeat( "\t", $recursion ) . sprintf( __( 'Invalid file: %s', 'wpml-string-translation' ), "/" . $dir_or_file ) );
 		}
-
 		if ( ! $recursion ) {
 			unset( $icl_st_p_scan_plugin_id );
 		}

@@ -32,3 +32,11 @@ function wpml_st_initialize_basic_strings() {
 if ( is_admin() ) {
 	add_action( 'wp_loaded', 'wpml_st_initialize_basic_strings' );
 }
+
+function icl_st_update_blogname_actions($old, $new){
+	icl_st_update_string_actions('WP', 'Blog Title', $old, $new, true );
+}
+
+function icl_st_update_blogdescription_actions($old, $new){
+	icl_st_update_string_actions('WP', 'Tagline', $old, $new, true );
+}

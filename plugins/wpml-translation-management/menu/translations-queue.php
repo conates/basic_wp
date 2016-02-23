@@ -35,8 +35,9 @@ if ( ! empty( $_GET[ 'resigned' ] ) ) {
 if ( isset( $_SESSION[ 'translation_ujobs_filter' ] ) ) {
     $icl_translation_filter = $_SESSION[ 'translation_ujobs_filter' ];
 }
-$current_translator                             = $iclTranslationManagement->get_current_translator();
-$can_translate                                  = $current_translator && $current_translator->ID > 0 && $current_translator->language_pairs;
+$current_translator = $iclTranslationManagement->get_current_translator();
+$can_translate      = $current_translator && $current_translator->ID > 0 && $current_translator->language_pairs;
+$post_link_factory  = new WPML_TM_Post_Link_Factory( $sitepress );
 if( $can_translate ) {
 	$icl_translation_filter['translator_id']      = $current_translator->ID;
 	$icl_translation_filter['include_unassigned'] = true;
@@ -44,7 +45,7 @@ if( $can_translate ) {
 	$element_type_prefix = isset( $_GET['element_type'] ) ? $_GET['element_type'] : 'post';
 	if ( isset( $_GET['updated'] ) && $_GET['updated'] ) {
 		$post                 = get_post( $_GET['updated'] );
-		$tm_post_link_updated = TranslationManagement::tm_post_link( intval( $_GET['updated'] ) );
+		$tm_post_link_updated = $post_link_factory->view_link( $_GET['updated'] );
 		if ( $iclTranslationManagement->is_external_type( $element_type_prefix ) ) {
 			$tm_post_link_updated = apply_filters( 'wpml_external_item_link', $tm_post_link_updated, $_GET['updated'], false );
 		}
@@ -52,7 +53,7 @@ if( $can_translate ) {
 		$iclTranslationManagement->add_message( array( 'type' => 'updated', 'text' => $user_message ) );
 	} elseif ( isset( $_GET['added'] ) && $_GET['added'] ) {
 		$post               = get_post( $_GET['added'] );
-		$tm_post_link_added = TranslationManagement::tm_post_link( intval( $_GET['added'] ) );
+		$tm_post_link_added = $post_link_factory->view_link( $_GET['added'] );
 		if ( $iclTranslationManagement->is_external_type( $element_type_prefix ) ) {
 			$tm_post_link_added = apply_filters( 'wpml_external_item_link', $tm_post_link_added, $_GET['added'], false );
 		}
@@ -338,8 +339,9 @@ if( $can_translate ) {
 				            ?>
 			            </a>
 			            <?php
-			            $tm_post_link = TranslationManagement::tm_post_link( $job->original_doc_id, __( 'View original', 'wpml-translation-management' ), true );
-
+			            $tm_post_link        = $post_link_factory->view_link_anchor( $job->original_doc_id,
+				            __( 'View original',
+					            'wpml-translation-management' ) );
 			            $element_type_prefix = $iclTranslationManagement->get_element_type_prefix_from_job( $job );
 			            if ( $iclTranslationManagement->is_external_type( $element_type_prefix ) ) {
 				            $tm_post_link = apply_filters( 'wpml_external_item_link', '', $job->original_doc_id, false );

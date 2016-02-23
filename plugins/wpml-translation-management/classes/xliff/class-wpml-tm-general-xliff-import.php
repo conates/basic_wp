@@ -3,6 +3,11 @@
 class WPML_TM_General_Xliff_Import extends WPML_TM_Job_Factory_User {
 
 	/**
+	 * @var WPML_TM_Xliff_Reader_Factory $xliff_reader_factory
+	 */
+	private $xliff_reader_factory;
+
+	/**
 	 * WPML_TM_General_Xliff_Import constructor.
 	 *
 	 * @param WPML_Translation_Job_Factory $job_factory

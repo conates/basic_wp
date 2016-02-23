@@ -15,10 +15,6 @@ class WPML_TM_Element_Translations extends WPML_TM_Record_User {
 
 	public function init_hooks() {
 		add_action( 'wpml_cache_clear', array( $this, 'reload' ) );
-		add_filter( 'wpml_tm_get_element_id', array(
-			$this,
-			'get_element_id_filter'
-		), 10, 2 );
 		add_filter( 'wpml_tm_translation_status', array(
 			$this,
 			'get_translation_status_filter'
@@ -31,30 +27,6 @@ class WPML_TM_Element_Translations extends WPML_TM_Record_User {
 		$this->translation_status_cache  = array();
 		$this->update_status_cache       = array();
 		$this->element_type_prefix_cache = array();
-	}
-
-	public function get_element_id_filter( $empty, $arg ) {
-		$trid = $arg['trid'];
-		$language_code = $arg['language_code'];
-		return $this->get_element_id($trid, $language_code);
-	}
-
-	/**
-	 * @param int    $trid
-	 * @param string $language_code
-	 *
-	 * @return bool|int element_id for trid/lang combination or false if not found
-	 */
-	public function get_element_id( $trid, $language_code ) {
-		if ( (bool) $trid === false || (bool) $language_code === false ) {
-
-			return false;
-		}
-		$element_id = $this->tm_records
-			->icl_translations_by_trid_and_lang( $trid, $language_code )
-			->element_id();
-
-		return $element_id > 0 ? $element_id : false;
 	}
 
 	public function is_update_needed( $trid, $language_code ) {

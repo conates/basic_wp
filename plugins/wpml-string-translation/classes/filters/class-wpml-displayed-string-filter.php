@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Class WPML_Displayed_String_Filter
+ *
+ * Handles all string translating when rendering translated strings to the user, unless auto-registering is
+ * active for strings.
+ */
 class WPML_Displayed_String_Filter extends WPML_WPDB_And_SP_User {
 
 	protected $language;
@@ -159,6 +165,12 @@ class WPML_Displayed_String_Filter extends WPML_WPDB_And_SP_User {
 		$this->name_cache     = $name_cache;
 	}
 	
+	/**
+	 * @param string          $name
+	 * @param string|string[] $context
+	 *
+	 * @return array
+	 */
 	protected function truncate_name_and_context( $name, $context) {
 		if ( is_array( $context ) ) {
 			$domain          = isset ( $context[ 'domain' ] ) ? $context[ 'domain' ] : '';
@@ -167,18 +179,11 @@ class WPML_Displayed_String_Filter extends WPML_WPDB_And_SP_User {
 			$domain = $context;
 			$gettext_context = '';
 		}
-		
-		if (strlen( $name ) > WPML_STRING_TABLE_NAME_CONTEXT_LENGTH ) {
-			// truncate to match length in db
-			$name = substr( $name, 0, intval( WPML_STRING_TABLE_NAME_CONTEXT_LENGTH ) );
-		}
-		if (strlen( $domain ) > WPML_STRING_TABLE_NAME_CONTEXT_LENGTH ) {
-			// truncate to match length in db
-			$domain = substr( $domain, 0, intval( WPML_STRING_TABLE_NAME_CONTEXT_LENGTH ) );
-		}
-		
-		// combine the $name and $gettext_context as the returned name
-		// since this is the way we'll search the cache.
+		list( $name, $domain ) = array_map( array(
+			$this,
+			'truncate_long_string'
+		), array( $name, $domain ) );
+
 		return array( $name . $gettext_context, $domain );
 	}
 
@@ -190,8 +195,28 @@ class WPML_Displayed_String_Filter extends WPML_WPDB_And_SP_User {
 			$domain          = $context;
 			$gettext_context = '';
 		}
+		$domain = $this->truncate_long_string( $domain );
 
-		return array( $domain, $gettext_context, md5( $domain . $name . $gettext_context ) );
+		return array(
+			$domain,
+			$gettext_context,
+			md5( $domain . $name . $gettext_context )
+		);
+	}
+
+	/**
+	 * Truncates a string to the maximum string table column width
+	 *
+	 * @param string $string
+	 *
+	 * @return string
+	 */
+	private function truncate_long_string( $string ) {
+
+		return mb_strlen( $string ) > WPML_STRING_TABLE_NAME_CONTEXT_LENGTH
+			? substr( $string, 0,
+				WPML_STRING_TABLE_NAME_CONTEXT_LENGTH )
+			: $string;
 	}
 
 	/**

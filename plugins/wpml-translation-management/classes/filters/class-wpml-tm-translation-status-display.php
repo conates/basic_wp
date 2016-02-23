@@ -18,12 +18,18 @@ class WPML_TM_Translation_Status_Display extends WPML_Full_PT_API {
 	 *
 	 * @param wpdb                         $wpdb
 	 * @param SitePress                    $sitepress
-	 * @param WPML_Post_Translation        $post_translation
 	 * @param WPML_Post_Status             $status_helper
 	 * @param WPML_Translation_Job_Factory $job_factory
 	 * @param WPML_TM_API                  $tm_api
 	 */
-	public function __construct( &$wpdb, &$sitepress, &$post_translation, &$status_helper, &$job_factory, &$tm_api ) {
+	public function __construct(
+		&$wpdb,
+		&$sitepress,
+		&$status_helper,
+		&$job_factory,
+		&$tm_api
+	) {
+		$post_translation = $sitepress->post_translations();
 		parent::__construct( $wpdb, $sitepress, $post_translation );
 		$this->status_helper = &$status_helper;
 		$this->job_factory   = &$job_factory;
@@ -97,22 +103,32 @@ class WPML_TM_Translation_Status_Display extends WPML_Full_PT_API {
 	 * @return string
 	 */
 	public function filter_status_link( $link, $post_id, $lang, $trid ) {
+		$translated_element_id = $this->post_translations->get_element_id( $lang,
+			$trid );
+		if ( (bool) $translated_element_id
+		     && (bool) $this->post_translations->get_source_lang_code( $translated_element_id ) === false
+		) {
+			return $link;
+		}
 		$this->maybe_load_stats( $trid );
 		$is_remote               = $this->is_remote( $trid, $lang );
 		$is_in_progress          = $this->is_in_progress( $trid, $lang );
 		$tm_editor_link_base_url = 'admin.php?page=' . WPML_TM_FOLDER . '/menu/translations-queue.php';
 		$use_tm_editor           = $this->sitepress->get_setting( 'doc_translation_method' );
-		if ( ( $is_remote && $is_in_progress ) || $this->is_in_basket( $trid, $lang ) || ! $this->is_lang_pair_allowed( $lang ) ) {
+		if ( ( $is_remote && $is_in_progress ) || $this->is_in_basket( $trid,
+				$lang ) || ! $this->is_lang_pair_allowed( $lang )
+		) {
 			$link = '###';
 		} elseif (
-			( $source_lang_code = $this->post_translations->get_element_lang_code( $post_id ) )
+			( $source_lang_code = $this->post_translations->get_source_lang_code( $translated_element_id ) )
 			&& $source_lang_code !== $lang
 		) {
 			if ( ( $is_in_progress && ! $is_remote ) || ( $use_tm_editor
-			                                              && $this->post_translations->get_element_id( $lang, $trid ) )
+			                                              && $translated_element_id )
 			) {
-				$link = $tm_editor_link_base_url . '&job_id=' . $this->job_factory->job_id_by_trid_and_lang( $trid, $lang );
-			} elseif ( $use_tm_editor && ! $this->post_translations->get_element_id( $lang, $trid ) ) {
+				$link = $tm_editor_link_base_url . '&job_id=' . $this->job_factory->job_id_by_trid_and_lang( $trid,
+						$lang );
+			} elseif ( $use_tm_editor && ! $translated_element_id ) {
 				$link = $tm_editor_link_base_url . '&trid=' . $trid . '&language_code=' . $lang . '&source_language_code=' . $source_lang_code;
 			}
 		}

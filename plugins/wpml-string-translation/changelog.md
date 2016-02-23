@@ -1,3 +1,19 @@
+#2.3.6.1
+
+##Fixes
+* Fix dependency check issue ("WPML Update is incomplete" notice)
+
+#2.3.6
+
+##Fixes
+* [wpmlst-695] Fix performance issue when checking fo sticky links plugin
+
+##Performances
+* [wpmlcore-2528] Cached calls to `glob()` function when auto loading classes
+
+##Cleanup
+* [wpmlcore-2541] Removal of "icon-32" usage
+
 #2.3.5
 
 ##Fixes

@@ -1,8 +1,8 @@
 <?php
 
-class WPML_String_Translation
+class WPML_String_Translation extends WPML_SP_User
 {
-	public $load_priority = 400;
+	private $load_priority = 400;
 	private $messages = array();
 	private $string_filters = array();
 	private $strings_autoregister;
@@ -11,16 +11,29 @@ class WPML_String_Translation
 	/** @var  WPML_ST_String_Factory $string_factory */
 	private $string_factory;
 
-	/** @var WPML_ST_String_Factory $string_factory */
-	function __construct( &$string_factory ) {
+	/**
+	 * @param SitePress              $sitepress
+	 * @param WPML_ST_String_Factory $string_factory
+	 */
+	public function __construct( &$sitepress, &$string_factory ) {
+		parent::__construct( $sitepress );
 		$this->string_factory = &$string_factory;
-		if ( defined( 'WPML_TM_VERSION' ) ) {
+	}
+
+	/**
+	 * Sets up basic actions hooked by ST
+	 */
+	public function set_basic_hooks() {
+		if ( $this->sitepress->get_wp_api()->constant( 'WPML_TM_VERSION' ) ) {
 			add_action( 'wpml_tm_loaded', array( $this, 'load' ) );
 		} else {
-			add_action( 'wpml_loaded', array( $this, 'load' ), $this->load_priority );
+			add_action( 'wpml_loaded', array( $this, 'load' ),
+				$this->load_priority );
 		}
-		add_action( 'plugins_loaded', array( $this, 'check_db_for_gettext_context' ) , 1000 );
-		add_action( 'wpml_language_has_switched', array( $this, 'wpml_language_has_switched' ) );
+		add_action( 'plugins_loaded',
+			array( $this, 'check_db_for_gettext_context' ), 1000 );
+		add_action( 'wpml_language_has_switched',
+			array( $this, 'wpml_language_has_switched' ) );
 	}
 	
 	function _wpml_not_installed_warning(){
@@ -346,7 +359,7 @@ class WPML_String_Translation
 		if ( empty( $file ) && !empty( $_GET[ 'file' ] ) ) {
 			$file = WP_PLUGIN_DIR . '/' . $_GET[ 'file' ];
 		}
-		if ( empty( $file ) )
+		if ( empty( $file ) && validate_file( $file ) > 0 )
 			return;
 
 		if ( is_null( $__wpml_st_po_file_content ) ) {
@@ -480,32 +493,66 @@ class WPML_String_Translation
 
 		return $res;
 	}
-	
-	function pre_update_option_blogname($value, $old_value) {
-		return $this->pre_update_option_settings("Blog Title", $value, $old_value);
+
+	function pre_update_option_blogname( $value, $old_value ) {
+		return $this->pre_update_option_settings( "Blog Title", $value,
+			$old_value );
 	}
-	
-	function pre_update_option_blogdescription($value, $old_value) {
-		return $this->pre_update_option_settings("Tagline", $value, $old_value);
+
+	function pre_update_option_blogdescription( $value, $old_value ) {
+		return $this->pre_update_option_settings( "Tagline", $value,
+			$old_value );
 	}
 
 	/**
-	 * @param string $option name of the option
+	 * @param string       $option name of the option
 	 * @param string|array $value new value of the option
 	 * @param string|array $old_value currently saved value for the option
 	 *
 	 * @return string|array the value actually to be written into the wp_options table
 	 */
 	function pre_update_option_settings( $option, $value, $old_value ) {
-		global $sitepress, $wpdb;
+		$wp_api = $this->sitepress->get_wp_api();
+		if ( $wp_api->is_multisite()
+		     && $wp_api->ms_is_switched()
+		     && ! $this->sitepress->get_setting( 'setup_complete' )
+		) {
+			return $value;
+		}
 
-		$option = new WPML_ST_Admin_Option( $wpdb, $sitepress, $this, $option );
+		$option = new WPML_ST_Admin_Blog_Option( $this->sitepress, $this,
+			$option );
 
-		return $option->pre_update_option_settings_filter( $old_value, $value );
+		return $option->pre_update_filter( $old_value, $value );
 	}
 
-	public function clear_string_filter( $lang ) {
-		unset( $this->string_filters[ $lang ] );
+	/**
+	 * Instantiates a new admin option translation object
+	 *
+	 * @param string $option_name
+	 * @param string $language_code
+	 *
+	 * @return WPML_ST_Admin_Option_Translation
+	 */
+	public function get_admin_option( $option_name, $language_code = '' ) {
+
+		return new WPML_ST_Admin_Option_Translation( $this->sitepress, $this,
+			$option_name, $language_code );
+	}
+
+	/**
+	 * @return WPML_ST_String_Factory
+	 */
+	public function string_factory() {
+
+		return $this->string_factory;
+	}
+
+	/**
+	 * @param string $lang_code
+	 */
+	public function clear_string_filter( $lang_code ) {
+		unset( $this->string_filters[ $lang_code ] );
 	}
 
 	/**
@@ -514,12 +561,11 @@ class WPML_String_Translation
 	 * @return WPML_Displayed_String_Filter|null
 	 */
 	public function get_string_filter( $lang ) {
-		global $sitepress_settings, $wpdb, $sitepress;
-
 		if ( (bool) $this->active_languages === true
-			 && in_array( $lang, $this->active_languages )
-			 && isset( $sitepress_settings[ 'st' ][ 'db_ok_for_gettext_context' ] )
+			 && in_array( $lang, $this->active_languages, true )
 		) {
+			global $wpdb, $sitepress;
+
 			if ( ! $this->strings_autoregister ) {
 				$this->string_filters[ $lang ] = isset( $this->string_filters[ $lang ] ) && get_class( $this->string_filters[ $lang ] ) == 'WPML_Displayed_String_Filter'
 					? $this->string_filters[ $lang ] : new WPML_Displayed_String_Filter( $wpdb, $sitepress, $lang, isset( $this->string_filters[ $lang ] ) ? $this->string_filters[ $lang ] : null );
@@ -529,7 +575,7 @@ class WPML_String_Translation
 
 			return $this->string_filters[ $lang ];
 		} else {
-			return null;
+			throw new InvalidArgumentException('Tried to load a string filter for a non-existent language!');
 		}
 	}
 
@@ -761,33 +807,29 @@ class WPML_String_Translation
 	 * @return string
 	 */
 	public function get_current_string_language( $name ) {
-
 		if ( isset( $this->current_string_language_cache[ $name ] ) ) {
 			return $this->current_string_language_cache[ $name ];
 		}
-
-		if ( defined( 'DOING_AJAX' ) ) {
-			$current_language = apply_filters( 'WPML_get_language_cookie', '' );
-		} else {
-			$current_language = apply_filters( 'WPML_get_current_language', '' );
-		}
-
-		if ( defined( 'WP_ADMIN' )
-		     && ( apply_filters( 'WPML_is_admin_action_from_referer', false )
-		          || ! defined( 'DOING_AJAX' ) ) && ! is_translated_admin_string( $name )
+		$wp_api           = $this->sitepress->get_wp_api();
+		$current_language = $wp_api->constant( 'DOING_AJAX' )
+		                    && $this->sitepress->check_if_admin_action_from_referer()
+			? $this->sitepress->user_lang_by_authcookie()
+			: $this->sitepress->get_current_language();
+		if ( $wp_api->constant( 'WP_ADMIN' )
+		     && ( $this->sitepress->check_if_admin_action_from_referer()
+		          || ! $wp_api->constant( 'DOING_AJAX' ) ) && ! is_translated_admin_string( $name )
 		) {
-			$current_user = apply_filters( 'WPML_current_user', '' );
-			if ( isset( $current_user->ID ) ) {
-				$admin_display_lang = apply_filters( 'WPML_get_user_admin_language', '', $current_user->ID );
-				$current_language   = $admin_display_lang ? $admin_display_lang : $current_language;
-			}
+			$admin_display_lang = $this->sitepress->get_admin_language();
+			$current_language   = $admin_display_lang ? $admin_display_lang : $current_language;
 		}
 
-		$ret = apply_filters( 'icl_current_string_language', $current_language, $name );
+		$ret                                          = apply_filters( 'icl_current_string_language',
+			$current_language,
+			$name );
+		$this->current_string_language_cache[ $name ] = $ret === 'all'
+			? $this->sitepress->get_default_language() : $ret;
 
-		$this->current_string_language_cache[ $name ] = $ret;
-
-		return $ret;
+		return $this->current_string_language_cache[ $name ];
 	}
 	
 	public function wpml_language_has_switched( ) {
