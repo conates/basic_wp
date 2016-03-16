@@ -474,3 +474,32 @@ function my_register_fields()
 		setlocale(LC_TIME, $locale);
 		echo strftime($format, strtotime($date));
 	}
+
+
+	function update_data_one_hour_example(){
+		$fecha = new DateTime();
+		
+		if (isset($_SESSION['time']) && ($fecha->getTimestamp()-$_SESSION['time']<=3600)) {
+			//cache
+			//var_dump('cache');
+			$data = file_get_contents(get_template_directory().'/datadolar.xml');
+			$data = simplexml_load_string($data);
+		}else{
+			//update
+			//var_dump("update");
+			$data = file_get_contents('http://www.banchileinversiones.cl/indicador/xml/financiero?device=Iphone&cantidad=0');
+			$file = file_put_contents(get_template_directory().'/datadolar.xml',$data);
+			$data = simplexml_load_string($data);
+			$_SESSION['time'] = $fecha->getTimestamp();
+		}
+
+		if ($key ==-1) {
+			$data = date ('Y-m-d',strtotime((string)$data->hora));
+			
+		}else{
+			$data = (string)$data->financieros->financiero[$key]->valor;
+		}
+		
+		return $data;
+
+	}
