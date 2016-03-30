@@ -20,6 +20,11 @@
 		add_theme_support('post-thumbnails');
 	}
 	//Gets post cat slug and looks for single-[cat slug].php and applies it
+
+	/*add_theme_support( 'post-formats', array(
+		'aside', 'audio', 'chat', 'gallery', 'image', 'link', 'quote', 'status', 'video'
+	) );*/
+
 	add_filter('single_template', create_function(
 		'$the_template',
 		'foreach( (array) get_the_category() as $cat ) {
@@ -53,7 +58,7 @@
 				'rewrite' => array(
 					'slug'=>'novedades'
 				),
-				//'supports' => array('title', 'author', 'thumbnail','excerpt','editor','page-attributes'),
+				//'supports' => array('title', 'author', 'thumbnail','excerpt','editor','page-attributes','post-formats'),
 				'hierarchical' => FALSE,
 				'taxonomies' => array('post_category')
 			)*/
