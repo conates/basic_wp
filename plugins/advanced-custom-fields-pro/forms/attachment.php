@@ -138,6 +138,16 @@ class acf_form_attachment {
 			'ajax'		=> 1
 		));
 		
+		
+?>
+<script type="text/javascript">
+	
+// WP saves attachment on any input change, so unload is not needed
+acf.unload.active = 0;
+
+</script>
+<?php
+		
 	}
 	
 	
@@ -160,7 +170,7 @@ class acf_form_attachment {
 		$el = 'tr';
 		$post_id = $post->ID;
 		$args = array(
-			'attachment' => 'All'
+			'attachment' => $post_id
 		);
 		
 		
@@ -191,8 +201,12 @@ class acf_form_attachment {
 			if( $this->validate_page() ) {
 				
 				echo '<style type="text/css">
-					.compat-attachment-fields {
-						width: 100%;
+					.compat-attachment-fields,
+					.compat-attachment-fields > tbody,
+					.compat-attachment-fields > tbody > tr,
+					.compat-attachment-fields > tbody > tr > th,
+					.compat-attachment-fields > tbody > tr > td {
+						display: block;
 					}
 					tr.acf-field {
 						display: block;
