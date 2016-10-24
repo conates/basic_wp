@@ -8,6 +8,43 @@
 	require ('mandrill/Mandrill.php');
 
 
+	function mmx_remove_xmlrpc_methods( $methods ) {
+		unset( $methods['system.multicall'] );
+		unset( $methods['system.listMethods'] );
+		unset( $methods['system.getCapabilities'] );
+		unset( $methods['pingback.ping'] );
+		return $methods;
+	}
+	add_filter( "xmlrpc_methods", "mmx_remove_xmlrpc_methods");
+	
+	add_filter( 'xmlrpc_methods', 'Remove_Unneeded_XMLRPC' );
+	function Remove_Unneeded_XMLRPC( $methods ) {
+	    unset( $methods['wp.getUsersBlogs'] );
+	    return $methods;
+	}
+
+if(!is_user_logged_in())
+        define('XMLRPC_REQUEST', false);
+
+
+
+    
+
+	function remove_default_image_sizes()
+	{
+	    remove_image_size('medium');
+	    add_image_size('medium', 0, 0, true);
+	    remove_image_size('medium_large');
+	    add_image_size('medium_large', 0, 0, true);
+	    remove_image_size('large');
+	    add_image_size('large', 0, 0, true);
+	    remove_image_size('_themosis_media');
+	    add_image_size('_themosis_media', 0, 0, true);
+	}
+
+	add_action('init', 'remove_default_image_sizes');
+
+
 
 	function quitar_barra_administracion(){
 		return false;
